@@ -2,22 +2,24 @@ import os
 import os.path as osp
 import time
 import torch
-from torch_geometric.data import Dataset, DataLoader
+from torch_geometric.data import Dataset
+from torch_geometric.loader import DataLoader
+
 
 # data
 class STP_GR_Dataset(Dataset):
-    def __init__(self, data_path='/home/xy/stp_data_2021', scenario_names=['stp0750am-0805am']):
+
+    def __init__(self, data_path='stp_data_2021', scenario_names=['stp0750am-0805am']):
         # Initialization
         self.data_path = data_path
         self.scenario_names = scenario_names
         self.all_data_names = os.listdir(self.data_path)
 
-
         self.scenario_data_names = [dn for dn in self.all_data_names if dn.split('_')[0] in self.scenario_names]
-            
-        print('there are {} data pieces for {} on {}'.format(self.__len__(), self.data_path.split('/home/xy/')[1], self.scenario_names))
+
+        print('there are {} data pieces for {} on {}'.format(self.__len__(), self.data_path.split('/')[-1], self.scenario_names))
         super(STP_GR_Dataset).__init__()
-    
+
     def __len__(self):
         'Denotes the total number of samples'
         return len(self.scenario_data_names)
@@ -30,16 +32,19 @@ class STP_GR_Dataset(Dataset):
         # data_item.node_feature = data_item.node_feature.float()
         data_item.x = data_item.node_feature.float()
         data_item.y = data_item.y.float()
+
+        data_item.fname = ID
         # print(data_item)
         return data_item
-    
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+
     def vis_one_pyg_data(pyg_data):
         pass
 
-
-    dataset = STP_GR_Dataset(data_path='/home/xy/stp_data_2021', scenario_names=['stp0750am-0805am', 'stp0805am-0820am', 'stp0820am-0835am']) 
+    dataset = STP_GR_Dataset(data_path='/home/xy/stp_data_2021', scenario_names=['stp0750am-0805am', 'stp0805am-0820am', 'stp0820am-0835am'])
     # 'stp0750am-0805am' , 'stp0805am-0820am' 'stp0820am-0835am'
     print(dataset.__getitem__(0).num_edges)
     # print('there are {} data in {} dataset'.format(dataset.__len__(), dataset.scenario_name))
@@ -51,8 +56,8 @@ if __name__ == '__main__':
         print(d)
         tac = time.time()
         # print('used {} sec to load {} data'.format((tac-tic), 128))
-        print(max(d.x[:,0,0]))
-        print(max(d.x[:,0,1]))
+        print(max(d.x[:, 0, 0]))
+        print(max(d.x[:, 0, 1]))
         # print()
         # print(d.edge_index)
         break

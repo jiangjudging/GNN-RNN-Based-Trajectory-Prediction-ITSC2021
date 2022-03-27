@@ -8,6 +8,7 @@ import pickle
 import time
 import torch
 from torch_geometric.data import Data
+from plot_helper import find_files, traj_plot_by_plt, x_magnitude, create_new_dir
 
 
 class single_tp_data_pre():
@@ -16,7 +17,7 @@ class single_tp_data_pre():
         # print('\nworking on {} \n'.format(data_path))
         self.csv_data_path = csv_data_path
         self.df_0 = pd.read_csv(self.csv_data_path)
-        self.once_lc_vehs = self.load_pkl()
+        self.vehs_id = [352, 353, 323, 328, 331, 332, 336, 338, 339, 340, 341, 342, 343, 346, 347]
         self.veh_id2traj_all = self.get_veh_id2traj_all()
 
     def load_pkl(self):
@@ -207,32 +208,36 @@ class single_tp_data_pre():
 
         data_k = self.csv_data_path.split('trajectories-')[1].split('.')[0]
 
-        vehs_LC_once = self.once_lc_vehs[data_k]  #这是once_lc_veh_selector.py保存的once_LC_vehs_us101.pkl
+        # vehs_LC_once = self.once_lc_vehs  #这是once_lc_veh_selector.py保存的once_LC_vehs_us101.pkl
 
-        print('preprocessing data of {}, {} once LC vehicles in total'.format(data_k, len(vehs_LC_once)))
-        for ego_id in vehs_LC_once:
+        print('preprocessing data of {}, {} once LC vehicles in total'.format(data_k, len(self.vehs_id)))
+        for ego_id in self.vehs_id:
             # break
             print(f"{data_k},ego_id: {ego_id}")
             traji = self.veh_id2traj_all[ego_id]  # ego_id的轨迹
-            lc_f, ol, tl = self.find_lc_frame(traji)  # 换道的帧id
+            # lc_f, ol, tl = self.find_lc_frame(traji)  # 换道的帧id
 
-            min_frm_id = min(set(traji['Frame_ID'].values))
-            max_frm_id = max(set(traji['Frame_ID'].values))
-
+            # min_frm_id = min(set(traji['Frame_ID'].values))
+            # max_frm_id = max(set(traji['Frame_ID'].values))
+            frms_id = traji['Frame_ID'].values
+            if (len(frms_id) > 81):
+                out_dir = create_new_dir("/home/jiang/trajectory_pred/GNN-RNN-Based-Trajectory-Prediction-ITSC2021/ngsim_single_datasets",
+                                         f"stp{data_k}_v{ego_id}")
             # 只要变道前后130帧的结果？？？ 这是为什么呢-->是因为要balanced data吗
-            for frm_id in range(max(lc_f - 130, min_frm_id), min(lc_f + 130, max_frm_id)):
+            for frm_id in frms_id[31:-50]:
                 Hist, futGT = self.get_data_item(ego_id, frm_id)
                 pyg_data_item = self.turn_data_item_to_pyg(Hist, futGT)
 
                 if pyg_data_item.node_feature.shape[0] == 0 or pyg_data_item.y.shape[0] == 0:
                     continue
-                data_name = 'stp_data_i80/stp{}_v{}_f{}.pyg'.format(data_k, ego_id, frm_id)
+                data_name = f"{out_dir}/stp{data_k}_v{ego_id}_f{frm_id}.pyg"
+                # data_name = f'stp_data_i80/stp{}_v{}_f{}.pyg'.format(data_k, ego_id, frm_id)
                 torch.save(pyg_data_item, data_name)
 
 
 if __name__ == '__main__':
 
-    csv_data_path_list = ['data_i80/trajectories-0400pm-0415pm.csv', 'data_i80/trajectories-0500pm-0515pm.csv', 'data_i80/trajectories-0515pm-0530pm.csv']
+    csv_data_path_list = ['/home/jiang/trajectory_pred/GNN-RNN-Based-Trajectory-Prediction-ITSC2021/data_us101/trajectories-0805am-0820am.csv']
     for data_path in csv_data_path_list[0:]:
         single_data_pre = single_tp_data_pre(csv_data_path=data_path)
         single_data_pre.preprocess_data()
