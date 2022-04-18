@@ -1,0 +1,21 @@
+
+tf encoder
+loss:横纵:None,lc:no_lc = None,time = 10/55,9/55...1/55
+epoch 01:45.625
+epoch 02:31.5268
+epoch 03:24.1346
+epoch 04:21.0592
+epoch 05:19.7796
+epoch 06:18.5325
+epoch 07:17.7959
+epoch 08:15.7609
+epoch 09:15.1625
+epoch 10:14.1168
+epoch 11:9.5913
+epoch 12:9.0242
+epoch 13:8.8897
+epoch 14:11.2585
+epoch 15:8.9037
+epoch 16:8.6287
+epoch 17:8.1317
+epoch 18:8.5265

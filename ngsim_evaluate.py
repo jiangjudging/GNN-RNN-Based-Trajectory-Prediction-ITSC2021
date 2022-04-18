@@ -12,6 +12,7 @@ import torch.nn as nn
 from torch.optim.lr_scheduler import MultiStepLR
 
 from utils import maskedMSE, maskedMSETest, maskedMSEFinalTest
+from plot_helper import traj_plot_by_plt
 
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
@@ -21,19 +22,22 @@ from stp_g_model import STP_G_Net
 from stp_gr_model import STP_GR_Net
 
 from stp_gr_dataset import STP_GR_Dataset
-from ld_dataset import LD_Dataset, get_smp_list_ds_df_dict, get_tgt_smp, get_smp_list, get_ds_df_dict
+from ngsim_dataset import NgsimDataset
 
 import math
 import time
-from plot_helper import find_files, traj_plot_by_plt, x_magnitude, create_new_dir, ld_traj_plot_by_plt
-import os.path as osp
-from collections import defaultdict
 
 
-def predict(model_to_test, testDataloader, fut_dict):
+def test_a_model(model_to_test, testDataloader, is_plot=False, plot_num=0):
     model_to_test.eval()
+    x_lossVals = torch.zeros(10)
+    y_lossVals = torch.zeros(10)
+    lossVals = torch.zeros(10)
+    counts = torch.zeros(10)
+
     with torch.no_grad():
         print('Testing no grad')
+        # val_running_loss = 0.0
         for i, data in enumerate(testDataloader):
             # down-sampling data
             data.x = data.x[:, ::2, :]
@@ -43,22 +47,41 @@ def predict(model_to_test, testDataloader, fut_dict):
             fut_pred = model_to_test(data.to(args['device']))
 
             # calculate loss
-            for j in range(len(fut_pred)):
-                fut_gt = data.y[j:j + 1, :, :].cpu()
-                fut_pred_i = fut_pred[j:j + 1].cpu().detach().numpy()
+            fut_pred_permu = fut_pred.permute(1, 0, 2)
+            ff = data.y.permute(1, 0, 2)
 
-                x = data.x[data.batch == j].cpu().detach().numpy()
+            if is_plot:
+                for j in range(len(fut_pred)):
+                    fut_gt_j = data.y[j:j + 1, :, :] * 0.3048
+                    fut_pred_j = fut_pred[j:j + 1] * 0.3048
+                    x_j = data.x[data.batch == j] * 0.3048
 
-                ds_id = int(data.ds_id[j].cpu())
-                tgt_id = data[j].tgt_id
-                frm_id = data[j].frm_id
-                if ds_id not in fut_dict:
-                    fut_dict[ds_id] = {}
-                if frm_id not in fut_dict[ds_id]:
-                    fut_dict[ds_id][frm_id] = {}
-                fut_dict[ds_id][frm_id][tgt_id] = fut_pred_i
+                    ds_id_j = data.ds_id[j]
+                    frm_id_j = data.frm_id[j]
+                    tgt_id_j = data.tgt_id[j]
 
-    return fut_dict
+                    traj_plot_by_plt(x_j.cpu(), fut_gt_j.cpu(), fut_pred_j.cpu(),
+                                     f"./imgs/ngsim_eval_imgs/lc_case/lc_ds{ds_id_j}frmid{frm_id_j}tgt{tgt_id_j}.png")
+                    plot_num -= 1
+                    if plot_num == 0:
+                        return
+
+            op_mask = torch.ones(ff.shape)
+            x_l, y_l, l, c = maskedMSEFinalTest(fut_pred_permu, ff, op_mask)
+
+            x_lossVals += x_l.detach()
+            y_lossVals += y_l.detach()
+            lossVals += l.detach()
+            counts += c.detach()
+
+    x_rmse_loss_m = torch.pow(x_lossVals / counts, 0.5) * 0.3048
+    y_rmse_loss_m = torch.pow(y_lossVals / counts, 0.5) * 0.3048
+    rmse_loss_m = torch.pow(lossVals / counts, 0.5) * 0.3048
+
+    print(f"x_rmse_loss_m: {x_rmse_loss_m}")
+    print(f"y_rmse_loss_m: {y_rmse_loss_m}")
+    print(f"rmse_loss_m: {rmse_loss_m}")
+    return x_rmse_loss_m, y_rmse_loss_m, rmse_loss_m
 
 
 def save_obj_pkl(obj, name):
@@ -152,28 +175,18 @@ if __name__ == '__main__':
     pp.pprint(args)
     print('{}, {}: {}-{}, {}'.format(args['date'], args['net_type'], args['gnn_type'], args['enc_rnn_type'], args['device']))
 
-    # sample_dir = "ld_data/processed_samples_list"
-    # csv_dir = "ld_data/processed_csvs"
-    # samples_list, ds_df_dict = get_smp_list_ds_df_dict(sample_dir, csv_dir)
-    from ld_data_pre import ibeo_csv_dict, ibeo_csv_dir
-    sample_dir = "ld_data/processed_ibeo_samples_list"
-    samples_list = get_smp_list(sample_dir, prefix="")
-    ds_df_dict = get_ds_df_dict(ibeo_csv_dir, ibeo_csv_dict)
-    # train_set = LD_Dataset(samples_list, ds_df_dict)
+    samples_lc_file = "ngsim_samples_list/ngsim_lc_samples"
+
+    with open(samples_lc_file, "rb") as fp:  # Unpickling
+        samples_lc = pickle.load(fp)
+
+    test_set = NgsimDataset(samples_lc)
 
     torch.set_num_threads(4)
-    test_net.load_state_dict(torch.load("trained_models/ld_ibeo_2022_04_11_22_43_GR_GAT_GRU_h30f10_d3s_16_3.0s.tar"))
+    testDataloader = DataLoader(test_set, batch_size=args['batch_size'], shuffle=True, num_workers=4, pin_memory=True)
+
+    tic = time.time()
+    test_net.load_state_dict(torch.load("trained_models/2022_04_06_22_09_GR_GAT_GRU_h30f10_d3s_16_3.0s.tar"))
     test_net.to(device)
-    # 36, 0, 5, 11, 40
-    # ds_id_tgt_id = [[1, 0], [1, 292], [1, 296], [1, 298], [1, 300], [1, 270], [1, 302], [1, 304], [1, 306], [1, 308], [1, 310], [1, 286]]
-    # ds_id_tgt_id = [[1, 0], [1, 388], [1, 390], [1, 328], [1, 392], [1, 364], [1, 378], [1, 398], [1, 370], [1, 340], [1, 374], [1, 376], [1, 346], [1, 382]]
-    ds_id_tgt_id = [[2, 0], [2, 866], [2, 868], [2, 862]]
-    fut_dict = {}
-    for ds_id, tgt_id in ds_id_tgt_id:
-        tgt_smp_list = get_tgt_smp(samples_list, ds_id, tgt_id)
-        print(f"dataset id: {ds_id}  target_id: {tgt_id}, sample number: {len(tgt_smp_list)}")
-        test_set = LD_Dataset(tgt_smp_list, ds_df_dict)
-        testDataloader = DataLoader(test_set, batch_size=args['batch_size'], shuffle=True, num_workers=4, pin_memory=True)
-        fut_dict = predict(test_net, testDataloader, fut_dict)
-    print(fut_dict)
-    save_obj_pkl(fut_dict, "imgs/ld_eval_imgs/fut_pred_dict/ibeo_ds2_pred2")
+    test_loss_ep = test_a_model(test_net, testDataloader, True, 100)
+    # print(f"The avg test loss: {test_loss_ep}")

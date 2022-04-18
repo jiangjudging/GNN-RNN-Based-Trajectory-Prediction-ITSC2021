@@ -236,11 +236,72 @@ def maskedMSE(y_pred, y_gt, mask):
     x = y_gt[:, :, 0]
     y = y_gt[:, :, 1]
     # out = 20 * torch.pow(x-muX, 2) + 0.5 * torch.pow(y-muY, 2)  # 原来的
-    out = 20 * torch.pow(x - muX, 2) + 0.5 * torch.pow(y - muY, 2)
+    # out = 20 * torch.pow(x - muX, 2) + 0.5 * torch.pow(y - muY, 2) # 这个是ngsim的损失函数
+    out = 0.5 * torch.pow(x - muX, 2) + 20 * torch.pow(y - muY, 2)
+    # print(out.shape)
+    # weight = torch.arange(10, 0, -1) / 55
+    # weight = weight.unsqueeze(0).cuda()
+    # out *= weight
+    # out = 1 * torch.pow(x-muX, 2) + 1 * torch.pow(y-muY, 2)
+    acc[:, :, 0] = out
+    acc[:, :, 1] = out
+    acc = acc * mask
+    # print(acc)
+    lossVal = torch.sum(acc) / torch.sum(mask)
+    return lossVal
+
+
+def ld_maskedMSE(y_pred, y_gt, mask):
+    acc = torch.zeros_like(mask)
+    muX = y_pred[:, :, 0]
+    muY = y_pred[:, :, 1]
+    x = y_gt[:, :, 0]
+    y = y_gt[:, :, 1]
+    # out = 20 * torch.pow(x-muX, 2) + 0.5 * torch.pow(y-muY, 2)  # 原来的
+    # out = 20 * torch.pow(x - muX, 2) + 0.5 * torch.pow(y - muY, 2) # 这个是ngsim的损失函数
+    # out = 0.5 * torch.pow(x - muX, 2) + 20 * torch.pow(y - muY, 2)
+    # # print(out.shape)
+    # weight = torch.arange(10, 0, -1) / 55
+    # weight = weight.unsqueeze(0).cuda()
+    # out *= weight
+    out = 1 * torch.pow(x - muX, 2) + 1 * torch.pow(y - muY, 2)
+    # weight = torch.arange(10, 0, -1) / 55
+    # weight = weight.unsqueeze(0).cuda()
+    # out *= weight
+    acc[:, :, 0] = out
+    acc[:, :, 1] = out
+    acc = acc * mask
+    # print(acc)
+    lossVal = torch.sum(acc) / torch.sum(mask)
+    return lossVal
+
+
+def weightMSE(y_pred, y_gt, mask, lc_mask):
+    '''
+    这是带权重的MSE，有3个权重：
+    1. 横纵向权重20：0.5
+    2. 时间维度的权重： 10/55, 9//55, 8/55....1/55
+    3. 场景的权重： lc:no_lc = 1:0.0438
+    '''
+    lc_ratio = 0.0438
+    acc = torch.zeros_like(mask)
+    muX = y_pred[:, :, 0]
+    muY = y_pred[:, :, 1]
+    x = y_gt[:, :, 0]
+    y = y_gt[:, :, 1]
+    # out = 20 * torch.pow(x-muX, 2) + 0.5 * torch.pow(y-muY, 2)  # 原来的
+    # out = 20 * torch.pow(x - muX, 2) + 0.5 * torch.pow(y - muY, 2) # 这个是ngsim的损失函数
+    out = 0.5 * torch.pow(x - muX, 2) + 20 * torch.pow(y - muY, 2)
+    # out = 0.12 * torch.pow(x - muX, 2) + 8.4 * torch.pow(y - muY, 2)  # 这是实际统计出来的横纵向的平均速度比
+
     # print(out.shape)
     weight = torch.arange(10, 0, -1) / 55
     weight = weight.unsqueeze(0).cuda()
     out *= weight
+
+    # lc_weight = [1 if i == 0 else 1 / lc_ratio for i in lc_mask]
+    # lc_weight = torch.tensor(lc_weight).unsqueeze(1).cuda()
+    # out *= lc_weight
     # out = 1 * torch.pow(x-muX, 2) + 1 * torch.pow(y-muY, 2)
     acc[:, :, 0] = out
     acc[:, :, 1] = out

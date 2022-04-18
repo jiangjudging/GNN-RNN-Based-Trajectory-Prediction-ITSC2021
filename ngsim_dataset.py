@@ -9,41 +9,22 @@ from torch_geometric.loader import DataLoader
 from plot_helper import find_files
 import pickle, json
 
+ds_csv_dict = {
+    1: "data_us101/trajectories-0750am-0805am.csv",
+    2: "data_us101/trajectories-0805am-0820am.csv",
+    3: "data_us101/trajectories-0820am-0835am.csv",
+    4: "data_i80/trajectories-0400pm-0415pm.csv",
+    5: "data_i80/trajectories-0500pm-0515pm.csv",
+    6: "data_i80/trajectories-0515pm-0530pm.csv"
+}
 
-# data
-class LD_Dataset2(Dataset):
-
-    def __init__(self, data_path='ld_data_pygs'):
-        # Initialization
-        self.data_path = data_path
-
-        self.scenario_data_names = find_files(self.data_path, suffix='.pyg')
-
-        print(f'there are {len(self)} data pieces')
-        super(LD_Dataset2).__init__()
-
-    def __len__(self):
-        'Denotes the total number of samples'
-        return len(self.scenario_data_names)
-
-    def __getitem__(self, index):
-        'Generates one sample of data'
-        # Select sample
-        ID = self.scenario_data_names[index]
-        data_item = torch.load(ID)
-        # data_item.node_feature = data_item.node_feature.float()
-        data_item.x = data_item.node_feature.float()
-        data_item.y = data_item.y.float()
-
-        data_item.fname = ID.split('/')[-1][:-4]
-        # print(data_item)
-        return data_item
+ds_df_dict = {k: pd.read_csv(v) for k, v in ds_csv_dict.items()}
 
 
-class LD_Dataset(Dataset):
+class NgsimDataset(Dataset):
 
-    def __init__(self, samples_list, ds_df_dict, t_h=30, t_f=50):
-        super(LD_Dataset).__init__()
+    def __init__(self, samples_list, t_h=30, t_f=50):
+        super(NgsimDataset).__init__()
         # Initialization
         self.samples_list = samples_list
         self.ds_df_dict = ds_df_dict
@@ -66,21 +47,16 @@ class LD_Dataset(Dataset):
         ds_id = sample[0]
         frm_id = sample[1]
         tgt_id = sample[2]
-        nbrs_id = sample[3:]
+        lc = sample[3]
+        nbrs_id = sample[4:]
 
         hist_all, f1 = self.get_data_item(ds_id, tgt_id, frm_id, nbrs_id)
         data_item = self.turn_data_item_to_pyg(hist_all, f1)
         data_item.ds_id = ds_id
         data_item.frm_id = frm_id
         data_item.tgt_id = tgt_id
-        # data_item = torch.load(ID)
-        # # data_item.node_feature = data_item.node_feature.float()
-        # data_item.x = data_item.node_feature.float()
-        # data_item.y = data_item.y.float()
+        data_item.lc = lc
 
-        # data_item.fname = ID.split('/')[-1][:-4]
-
-        # print(data_item)
         return data_item
 
     def get_veh_id2traj_all(self):
@@ -92,10 +68,10 @@ class LD_Dataset(Dataset):
         veh_id2traj = {}
         for ds_id, df in self.ds_df_dict.items():
             veh_id2traj[ds_id] = {}
-            veh_IDs = set(df['obj_id'].values)
+            veh_IDs = df['Vehicle_ID'].unique()
 
             for vi in veh_IDs:
-                vi_traj = df[(df['obj_id'] == vi)][['frame_id', 'obj_id', 'LocalX', 'LocalY', 'GlobalX', 'GlobalY', 'oritentation_yaw']]
+                vi_traj = df[(df['Vehicle_ID'] == vi)][['Frame_ID', 'Vehicle_ID', 'Local_X', 'Local_Y']]
                 veh_id2traj[ds_id][vi] = vi_traj
             print('totally {} vehicles in dataset {}'.format(len(veh_id2traj[ds_id]), ds_id))
         return veh_id2traj
@@ -108,9 +84,9 @@ class LD_Dataset(Dataset):
         3. 邻居车辆确保在30帧内都存在
         '''
         # 得到ego车辆的ref_pos,ego_loc_pos,以及他的历史轨迹ego_hist
-        ref_pos, ego_loc_pos, ego_hist = self.get_ego_hist(ds_id, ego_id, frm_id)
+        ref_pos, ego_hist = self.get_ego_hist(ds_id, ego_id, frm_id)
         if ref_pos is None:
-            return np.empty([0, 31, 2]), np.empty([0, 50, 2]), []
+            return np.empty([0, 31, 2]), np.empty([0, 50, 2])
 
         # 得到周围车辆的历史轨迹
         nbrs_hist = self.get_nbrs_hist(ds_id, nbrs_id, frm_id, ref_pos)
@@ -124,7 +100,7 @@ class LD_Dataset(Dataset):
         # get the fut of ego (target)
         f = self.get_fut(ds_id, ego_id, frm_id, ref_pos)
         if len(f) == 0:
-            return np.empty([0, 31, 2]), np.empty([0, 50, 2]), []
+            return np.empty([0, 31, 2]), np.empty([0, 50, 2])
         f1[0] = f
 
         # get hist of all vehicles (nbrs and ego)
@@ -159,36 +135,34 @@ class LD_Dataset(Dataset):
 
         return one_pyg_data
 
-    def get_frames(self, df0, frm_stpt=12, frm_enpt=610):
+    def get_frames(self, df0, frm_stpt, frm_enpt):
         '''
         选出在要求区间的frame,左闭右开原则
         '''
-        vehposs = df0[(df0['frame_id'] >= frm_stpt) &
-                      (df0['frame_id'] < frm_enpt)][['frame_id', 'obj_id', 'LocalX', 'LocalY', 'GlobalX', 'GlobalY', 'oritentation_yaw']]
+        vehposs = df0[(df0['Frame_ID'] >= frm_stpt) & (df0['Frame_ID'] < frm_enpt)][['Frame_ID', 'Vehicle_ID', 'Local_X', 'Local_Y']]
         return vehposs
 
     def get_ego_hist(self, ds_id, ego_id, frm_id):
         '''
-        返回ego车辆在frm_id的坐标，作为ref_pos，orie_w，以及历史hist_len帧的位置（相对于ref_pos）
+        返回ego车辆在frm_id的坐标，作为ref_pos，以及历史hist_len帧的位置（相对于ref_pos）
         '''
         if ego_id not in self.veh_id2traj_all[ds_id].keys():  # 如果不在之前找到的id内的话，就返回np.empty([0, 2])
-            return None, None, np.empty([0, 2])
-        # 先计算ref_pos以及 orie_w
-        ego_frame_df = self.veh_id2traj_all[ds_id][ego_id][self.veh_id2traj_all[ds_id][ego_id]['frame_id'] == frm_id]
-        ref_pos = ego_frame_df[['GlobalX', 'GlobalY']].values[0]
-        ego_loc_pos = ego_frame_df[['LocalX', 'LocalY']].values[0]
+            return None, np.empty([0, 2])
+        # 先计算ref_pos
+        ego_frame_df = self.veh_id2traj_all[ds_id][ego_id][self.veh_id2traj_all[ds_id][ego_id]['Frame_ID'] == frm_id]
+        ref_pos = ego_frame_df[['Local_Y', 'Local_X']].values[0]
 
         # 得到历史轨迹
         veh_track = self.get_frames(self.veh_id2traj_all[ds_id][ego_id], frm_stpt=frm_id - self.t_h, frm_enpt=frm_id + 1)
-        veh_track = veh_track[['GlobalX', 'GlobalY']].values
+        veh_track = veh_track[['Local_Y', 'Local_X']].values
 
         # 减去ref_pos，得到相对于ref_pos的位置
         veh_track = veh_track - ref_pos
 
         # 如果得到的帧数小于hist_len + 1，也返回empty
         if len(veh_track) < self.t_h + 1:
-            return None, None, np.empty([0, 2])
-        return ref_pos, ego_loc_pos, veh_track
+            return None, np.empty([0, 2])
+        return ref_pos, veh_track
 
     def get_fut(self, ds_id, veh_id, frm_id, ref_pos):
         '''
@@ -198,7 +172,7 @@ class LD_Dataset(Dataset):
         3. 如果track的长度小于50帧的话，返回np.empty([0, 2])
         '''
         veh_track = self.get_frames(self.veh_id2traj_all[ds_id][veh_id], frm_stpt=frm_id + 1, frm_enpt=frm_id + self.t_f + 1)
-        veh_track = veh_track[['GlobalX', 'GlobalY']].values
+        veh_track = veh_track[['Local_Y', 'Local_X']].values
         veh_track = veh_track - ref_pos
         if len(veh_track) < self.t_f:
             return np.empty([0, 2])
@@ -214,29 +188,23 @@ class LD_Dataset(Dataset):
         if veh_id not in self.veh_id2traj_all[ds_id].keys():  # 如果不在之前找到的id内的话，就返回np.empty([0, 2])
             return np.empty([0, 2])
 
-        # ref_pos = self.veh_id2traj_all[ego_id][self.veh_id2traj_all[ego_id]['frame_id'] == frm_id][['GlobalX', 'GlobalY']].values[0]
         veh_track = self.get_frames(self.veh_id2traj_all[ds_id][veh_id], frm_stpt=frm_id - self.t_h, frm_enpt=frm_id + 1)
-        veh_track = veh_track[['GlobalX', 'GlobalY']].values
+        veh_track = veh_track[['Local_Y', 'Local_X']].values
         veh_track = veh_track - ref_pos
         if len(veh_track) < self.t_h + 1:
             return np.empty([0, 2])
         return veh_track
 
     def get_nbrs_hist(self, ds_id, nbrs_id, frm_id, ref_pos):
+        '''
+        得到所有nbr的历史轨迹
+        '''
         nbrs_hist = []
         for nbr_id in nbrs_id:
             veh_track = self.get_nbr_hist(ds_id, nbr_id, frm_id, ref_pos)
-            nbrs_hist.append(veh_track)
+            if veh_track != np.empty([0, 2]):
+                nbrs_hist.append(veh_track)
         return nbrs_hist
-
-
-def get_ds_id_dict():
-    ds_id_map = "dataset_id_mapping.json"
-    ds_id_dict = {}
-
-    with open(ds_id_map, "r") as outfile:
-        ds_id_dict = json.load(outfile)
-    return ds_id_dict
 
 
 def get_smp_list(sample_dir, prefix):
@@ -251,41 +219,6 @@ def get_smp_list(sample_dir, prefix):
     return samples_list
 
 
-def get_ds_df_dict(csv_dir, ds_id_dict):
-    csvs = find_files(csv_dir, suffix='.csv')
-    ds_df_dict = {}
-    for csv in csvs:
-        df = pd.read_csv(csv)
-        id = -1
-        for ds_id, ds_name in ds_id_dict.items():
-            csv_name = csv.split('/')[-1]
-            if csv_name.startswith(ds_name):
-                id = int(ds_id)
-                break
-        if id == -1 or id in ds_df_dict:
-            raise ValueError(f"wrong csv name : {csv}; id: {id}")
-        ds_df_dict[id] = df
-
-    print(f"total dataset count: {len(ds_df_dict)}")
-    return ds_df_dict
-
-
-def get_smp_list_ds_df_dict(sample_dir, csv_dir, prefix="LIDAR"):
-    sample_dir = os.path.dirname(os.path.abspath(__file__)) + "/" + sample_dir
-    csv_dir = os.path.dirname(os.path.abspath(__file__)) + "/" + csv_dir
-
-    # 获得数据集id mapping
-    ds_id_dict = get_ds_id_dict()
-
-    # 获得所有样本
-    samples_list = get_smp_list(sample_dir, prefix)
-
-    # 获得所有df
-    ds_df_dict = get_ds_df_dict(csv_dir, ds_id_dict)
-
-    return samples_list, ds_df_dict
-
-
 def get_tgt_smp(samples_list, ds_id, tgt_id):
     # 返回知道数据集和id的样本list
     ret = [smp for smp in samples_list if smp[0] == ds_id and smp[2] == tgt_id]
@@ -294,21 +227,16 @@ def get_tgt_smp(samples_list, ds_id, tgt_id):
 
 
 if __name__ == '__main__':
-    import pickle
-    with open("ld_data/processed_samples_list/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060", "rb") as fp:  # Unpickling
+    with open("ngsim_samples_list/ngsim_samples_train_downsample_40", "rb") as fp:  # Unpickling
         samples_list = pickle.load(fp)
 
-    csv_path1 = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_fusion_10hz.csv"
-    ds_df1 = pd.read_csv(csv_path1)
-    ds_df_dict = {1: ds_df1}
-
-    ld_dataset = LD_Dataset(samples_list, ds_df_dict)
-    print(len(ld_dataset))
+    ngsim_dataset = NgsimDataset(samples_list)
+    print(len(ngsim_dataset))
 
     import random
-    idx_lists = random.sample(range(0, len(ld_dataset)), 10)
+    idx_lists = random.sample(range(0, len(ngsim_dataset)), 10)
     print(idx_lists)
 
     for idx in idx_lists:
         print(samples_list[idx])
-        print(ld_dataset[idx].x)
+        print(ngsim_dataset[idx].x)

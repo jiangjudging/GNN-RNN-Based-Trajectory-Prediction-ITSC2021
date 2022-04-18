@@ -12,15 +12,26 @@ from torch_geometric.data import Data
 from plot_helper import find_files
 from tqdm import tqdm
 
+ibeo_csv_dir = "ld_data/processed_ibeo_csvs"
+ibeo_csv_dict = {
+    1: 'OD_LiangDao_20220318_9988_144017_fusion_00_cut.csv',
+    2: 'OD_LiangDao_20220318_9988_151727_fusion_00_cut.csv',
+    3: 'OD_LiangDao_20220318_9988_164021_fusion_00_cut.csv',
+    4: "OD_LiangDao_20220318_9988_164021_fusion_01_cut.csv",
+    5: "OD_LiangDao_20220318_9988_171225_fusion_00_cut.csv"
+}
+
 
 class single_tp_data_pre():
 
-    def __init__(self, csv_data_path, ds_id_dict, t_h=30, t_f=50, d_s=2, sample_frm_int=1, x_min=-40, x_max=60, y_min=-9, y_max=9):
+    def __init__(self, csv_data_path, ds_id_dict, save_path, t_h=30, t_f=50, d_s=2, sample_frm_int=1, x_min=-40, x_max=60, y_min=-9, y_max=9):
         self.csv_data_path = csv_data_path
-        self.csv_name = csv_data_path.split('/')[-1][:64]
+        # self.csv_name = csv_data_path.split('/')[-1][:64]
+        self.csv_name = csv_data_path.split('/')[-1][:-3]
+        self.save_path = save_path
         ds_id = -1
         for k, v in ds_id_dict.items():
-            if v == self.csv_name:
+            if v[:-3] == self.csv_name:
                 ds_id = int(k)
                 break
 
@@ -263,14 +274,19 @@ class single_tp_data_pre():
                 # torch.save(pyg_data_item, data_name)
                 total_cnt += 1
 
-        with open(f"ld_data/processed_samples_list/{self.csv_name}", "wb") as fp:  #Pickling
+        with open(f"{self.save_path}/{self.csv_name}", "wb") as fp:  #Pickling
             pickle.dump(samples, fp)
 
         print(f"total cnt: {total_cnt}")
 
 
 if __name__ == '__main__':
-    pass
+    # ibeo 预处理
+    sample_save_path = "/home/jiang/trajectory_pred/GNN-RNN-Based-Trajectory-Prediction-ITSC2021/ld_data/processed_ibeo_samples_list"
+    for key, value in ibeo_csv_dict.items():
+        csv_data_path = os.path.join(ibeo_csv_dir, value)
+        ibeo_pre = single_tp_data_pre(csv_data_path, ibeo_csv_dict, sample_save_path)
+        ibeo_pre.preprocess_data()
     # import json
     # dataset_dir = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis"
     # ego_csvs = find_files(dataset_dir, recursive=True, suffix="ego.csv")
@@ -292,20 +308,20 @@ if __name__ == '__main__':
     # merge_10hz_csv = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_fusion_10hz.csv"
 
     # dataset_dirpath = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis"
-    import shutil
-    dataset_dirpath = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis"
-    to_cp_dirpath = "/home/jiang/trajectory_pred/GNN-RNN-Based-Trajectory-Prediction-ITSC2021/ld_data/processed_csvs"
-    fusion_10hz_csvs = find_files(dataset_dirpath, recursive=True, suffix='fusion_10hz.csv')
-    ds_id_map = "dataset_id_mapping.json"
-    ds_id_dict = {}
+    # import shutil
+    # dataset_dirpath = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis"
+    # to_cp_dirpath = "/home/jiang/trajectory_pred/GNN-RNN-Based-Trajectory-Prediction-ITSC2021/ld_data/processed_csvs"
+    # fusion_10hz_csvs = find_files(dataset_dirpath, recursive=True, suffix='fusion_10hz.csv')
+    # ds_id_map = "dataset_id_mapping.json"
+    # ds_id_dict = {}
 
-    with open(ds_id_map, "r") as outfile:
-        ds_id_dict = json.load(outfile)
-    for fusion_10hz_csv in fusion_10hz_csvs:
-        # tp_data_pre = single_tp_data_pre(fusion_10hz_csv, ds_id_dict)
-        # print(tp_data_pre.csv_name)
-        # tp_data_pre.preprocess_data()
-        shutil.copy(fusion_10hz_csv, to_cp_dirpath)
+    # with open(ds_id_map, "r") as outfile:
+    #     ds_id_dict = json.load(outfile)
+    # for fusion_10hz_csv in fusion_10hz_csvs:
+    #     # tp_data_pre = single_tp_data_pre(fusion_10hz_csv, ds_id_dict)
+    #     # print(tp_data_pre.csv_name)
+    #     # tp_data_pre.preprocess_data()
+    #     shutil.copy(fusion_10hz_csv, to_cp_dirpath)
 
     # with open("ld_data/processed_samples_list/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060", "rb") as fp:  # Unpickling
     #     b = pickle.load(fp)

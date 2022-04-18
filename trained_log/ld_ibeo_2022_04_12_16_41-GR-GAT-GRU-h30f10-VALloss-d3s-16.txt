@@ -1,0 +1,126 @@
+epoch 01:tensor([ 1.1836,  1.8251,  2.5711,  3.4390,  4.4217,  5.3840,  6.4201,  7.5398,
+         8.8678, 10.8619])
+best val result for 1.0s is 1.825096845626831 in epoch 1
+best val result for 2.0s is 3.43904972076416 in epoch 1
+best val result for 3.0s is 5.3840203285217285 in epoch 1
+best val result for 4.0s is 7.539797782897949 in epoch 1
+best val result for 5.0s is 10.861884117126465 in epoch 1
+epoch 02:tensor([0.9109, 1.5820, 2.3036, 3.1095, 4.0340, 5.0867, 6.1404, 7.2428, 8.4869,
+        9.9637])
+best val result for 1.0s is 1.5819514989852905 in epoch 2
+best val result for 2.0s is 3.1095170974731445 in epoch 2
+best val result for 3.0s is 5.086660861968994 in epoch 2
+best val result for 4.0s is 7.242837905883789 in epoch 2
+best val result for 5.0s is 9.963716506958008 in epoch 2
+epoch 03:tensor([0.8602, 1.2065, 1.8358, 2.5121, 3.3017, 4.1046, 5.0828, 6.1173, 7.3299,
+        8.7446])
+best val result for 1.0s is 1.2064971923828125 in epoch 3
+best val result for 2.0s is 2.5120513439178467 in epoch 3
+best val result for 3.0s is 4.104589462280273 in epoch 3
+best val result for 4.0s is 6.117315292358398 in epoch 3
+best val result for 5.0s is 8.744592666625977 in epoch 3
+epoch 04:tensor([0.8225, 1.2800, 1.7666, 2.4198, 3.0251, 3.7766, 4.5782, 5.4745, 6.4944,
+        7.6974])
+best val result for 1.0s is 1.2064971923828125 in epoch 3
+best val result for 2.0s is 2.419835090637207 in epoch 4
+best val result for 3.0s is 3.776622772216797 in epoch 4
+best val result for 4.0s is 5.474502086639404 in epoch 4
+best val result for 5.0s is 7.6974263191223145 in epoch 4
+epoch 05:tensor([0.7462, 1.0958, 1.5203, 2.1451, 2.7173, 3.4053, 4.2153, 5.0947, 6.0964,
+        7.2853])
+best val result for 1.0s is 1.0957876443862915 in epoch 5
+best val result for 2.0s is 2.145056962966919 in epoch 5
+best val result for 3.0s is 3.4052767753601074 in epoch 5
+best val result for 4.0s is 5.094650745391846 in epoch 5
+best val result for 5.0s is 7.285344123840332 in epoch 5
+epoch 06:tensor([0.7125, 1.0518, 1.4852, 2.0106, 2.6840, 3.3856, 4.2965, 5.2244, 6.2388,
+        7.4429])
+best val result for 1.0s is 1.0517821311950684 in epoch 6
+best val result for 2.0s is 2.010573625564575 in epoch 6
+best val result for 3.0s is 3.3856372833251953 in epoch 6
+best val result for 4.0s is 5.094650745391846 in epoch 5
+best val result for 5.0s is 7.285344123840332 in epoch 5
+epoch 07:tensor([0.6972, 0.9814, 1.3866, 1.8508, 2.4085, 3.0440, 3.8115, 4.6244, 5.5614,
+        6.5790])
+best val result for 1.0s is 0.9814285635948181 in epoch 7
+best val result for 2.0s is 1.850791335105896 in epoch 7
+best val result for 3.0s is 3.044044256210327 in epoch 7
+best val result for 4.0s is 4.624378681182861 in epoch 7
+best val result for 5.0s is 6.579022407531738 in epoch 7
+epoch 08:tensor([0.7514, 1.0603, 1.4497, 1.9327, 2.4289, 3.0778, 3.8102, 4.6254, 5.5586,
+        6.5590])
+best val result for 1.0s is 0.9814285635948181 in epoch 7
+best val result for 2.0s is 1.850791335105896 in epoch 7
+best val result for 3.0s is 3.044044256210327 in epoch 7
+best val result for 4.0s is 4.624378681182861 in epoch 7
+best val result for 5.0s is 6.558958053588867 in epoch 8
+epoch 09:tensor([0.8099, 1.1963, 1.5409, 1.9650, 2.4955, 3.1560, 3.8658, 4.6766, 5.6048,
+        6.6415])
+best val result for 1.0s is 0.9814285635948181 in epoch 7
+best val result for 2.0s is 1.850791335105896 in epoch 7
+best val result for 3.0s is 3.044044256210327 in epoch 7
+best val result for 4.0s is 4.624378681182861 in epoch 7
+best val result for 5.0s is 6.558958053588867 in epoch 8
+epoch 10:tensor([0.7013, 1.0412, 1.4896, 1.9358, 2.5401, 3.0914, 3.8744, 4.6967, 5.6054,
+        6.6525])
+best val result for 1.0s is 0.9814285635948181 in epoch 7
+best val result for 2.0s is 1.850791335105896 in epoch 7
+best val result for 3.0s is 3.044044256210327 in epoch 7
+best val result for 4.0s is 4.624378681182861 in epoch 7
+best val result for 5.0s is 6.558958053588867 in epoch 8
+epoch 11:tensor([0.6078, 0.7888, 1.0568, 1.4122, 1.8683, 2.3626, 2.9974, 3.6679, 4.4450,
+        5.3754])
+best val result for 1.0s is 0.7888144254684448 in epoch 11
+best val result for 2.0s is 1.4121912717819214 in epoch 11
+best val result for 3.0s is 2.362637519836426 in epoch 11
+best val result for 4.0s is 3.6679394245147705 in epoch 11
+best val result for 5.0s is 5.375418186187744 in epoch 11
+epoch 12:tensor([0.5980, 0.7844, 1.0609, 1.4175, 1.8822, 2.3553, 2.9811, 3.6523, 4.4247,
+        5.3358])
+best val result for 1.0s is 0.7844350934028625 in epoch 12
+best val result for 2.0s is 1.4121912717819214 in epoch 11
+best val result for 3.0s is 2.355288505554199 in epoch 12
+best val result for 4.0s is 3.652266025543213 in epoch 12
+best val result for 5.0s is 5.3357648849487305 in epoch 12
+epoch 13:tensor([0.6046, 0.7769, 1.0334, 1.3797, 1.8122, 2.2845, 2.8872, 3.5469, 4.3091,
+        5.2055])
+best val result for 1.0s is 0.7768818140029907 in epoch 13
+best val result for 2.0s is 1.3797335624694824 in epoch 13
+best val result for 3.0s is 2.2844793796539307 in epoch 13
+best val result for 4.0s is 3.5469460487365723 in epoch 13
+best val result for 5.0s is 5.205476760864258 in epoch 13
+epoch 14:tensor([0.6101, 0.7773, 1.0214, 1.3551, 1.7822, 2.2600, 2.8424, 3.5018, 4.2591,
+        5.1520])
+best val result for 1.0s is 0.7768818140029907 in epoch 13
+best val result for 2.0s is 1.355109691619873 in epoch 14
+best val result for 3.0s is 2.2600176334381104 in epoch 14
+best val result for 4.0s is 3.501776695251465 in epoch 14
+best val result for 5.0s is 5.152002811431885 in epoch 14
+epoch 15:tensor([0.6012, 0.7755, 1.0179, 1.3621, 1.7850, 2.2598, 2.8375, 3.4829, 4.2269,
+        5.1190])
+best val result for 1.0s is 0.7755184769630432 in epoch 15
+best val result for 2.0s is 1.355109691619873 in epoch 14
+best val result for 3.0s is 2.259779930114746 in epoch 15
+best val result for 4.0s is 3.4828765392303467 in epoch 15
+best val result for 5.0s is 5.119011878967285 in epoch 15
+epoch 16:tensor([0.6042, 0.7769, 1.0218, 1.3541, 1.7799, 2.2506, 2.8360, 3.4793, 4.2236,
+        5.1090])
+best val result for 1.0s is 0.7755184769630432 in epoch 15
+best val result for 2.0s is 1.3540544509887695 in epoch 16
+best val result for 3.0s is 2.250593900680542 in epoch 16
+best val result for 4.0s is 3.4793357849121094 in epoch 16
+best val result for 5.0s is 5.108987331390381 in epoch 16
+epoch 17:tensor([0.6045, 0.7694, 1.0115, 1.3398, 1.7451, 2.2172, 2.7930, 3.4234, 4.1578,
+        5.0266])
+best val result for 1.0s is 0.7694470882415771 in epoch 17
+best val result for 2.0s is 1.3398191928863525 in epoch 17
+best val result for 3.0s is 2.2172412872314453 in epoch 17
+best val result for 4.0s is 3.4233779907226562 in epoch 17
+best val result for 5.0s is 5.026590347290039 in epoch 17
+epoch 18:tensor([0.6025, 0.7819, 1.0161, 1.3516, 1.7650, 2.2301, 2.7905, 3.4286, 4.1642,
+        5.0214])
+best val result for 1.0s is 0.7694470882415771 in epoch 17
+best val result for 2.0s is 1.3398191928863525 in epoch 17
+best val result for 3.0s is 2.2172412872314453 in epoch 17
+best val result for 4.0s is 3.4233779907226562 in epoch 17
+best val result for 5.0s is 5.02140998840332 in epoch 18

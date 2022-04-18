@@ -305,85 +305,109 @@ def get_save_path(file_path, new_suf, del_suf=".csv"):
     return out_path
 
 
+def cut_df(df, cut_time_periods):
+    ret_dfs = []
+    for cut_time_period in cut_time_periods:
+        start = cut_time_period[0] if cut_time_period[0] is not None else df['timestamp'].min()
+        end = cut_time_period[1] if cut_time_period[1] is not None else df['timestamp'].max()
+        print(start)
+        print(end)
+        ret_df = df[(df['timestamp'] >= start) & (df['timestamp'] <= end)]
+        ret_dfs.append(ret_df)
+    return ret_dfs
+
+
 if __name__ == '__main__':
     try:
         # bag_path = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20220126_134418_G310-PDX-007-002-001_000000-000036_LD_final_OD_MERGE_OPP_LDE/LIDAR_LJ02766_20220126_134418_G310-PDX-007-002-001_000000-000036_LD_final_OD_MERGE_OPP_LDE.bag"
         # out_dir = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20220126_134418_G310-PDX-007-002-001_000000-000036_LD_final_OD_MERGE_OPP_LDE"
         # run_bag2csv(bag2csv_path, bag_path, out_dir)
         # exit()
-        dataset_dirpath = '/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis'
-        '''
+        dataset_dirpath = '/home/jiang/trajectory_pred/ld_dataset/ibeo_dataset'
+
         # 找出所有的obj,ego的csv
         obj_csvs = find_files(dataset_dirpath, recursive=True, suffix='obj.csv')
         ego_csvs = find_files(dataset_dirpath, recursive=True, suffix='ego.csv')
         # logging.info(len(obj_csvs), obj_csvs)
         # logging.info(len(ego_csvs), ego_csvs)
+        '''
 
         # 过滤每一个obj_csv,保存过滤后的csv
         # 1.删除没有在0-90m出现过的obj
+        min_dist, max_dist = -40, 90
         # 2.删除生命周期小于3s的obj
+        duration = 3
         # 3.删除dimension_x < 1.5m 或者dimension_y < 0.8m
+        dx, dy = 1.5, 0.8
         # 4.一帧出现两个相同的id TODO
         obj_filter_dfs = []
         for obj_csv in obj_csvs:
             logging.info(obj_csv)
             obj_df = pd.read_csv(obj_csv)
-            del1_obj_df = del_obj_out_range(obj_df)
-            del2_obj_df = del_obj_life_less(del1_obj_df)
-            del3_obj_df = del_obj_dim_less(del2_obj_df)
+            del1_obj_df = del_obj_out_range(obj_df, min_dist=min_dist, max_dist=max_dist)
+            del2_obj_df = del_obj_life_less(del1_obj_df, duration=duration)
+            del3_obj_df = del_obj_dim_less(del2_obj_df, dx=dx, dy=dy)
             out_path = get_save_path(obj_csv, "_filter.csv")
             logging.info(out_path)
             logging.info("\n\n")
             del3_obj_df.to_csv(out_path, index=False)
             obj_filter_dfs.append(del3_obj_df)
+                
         
         # dataset_dirpath = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210916_052044_G260-PDX-006-001-052_000003-000060_LD_final_OD_MERGE_OPP"
-        obj_filter_csvs = find_files(dataset_dirpath, recursive=True, suffix='interp_del_interp2.csv')
+        obj_filter_csvs = find_files(dataset_dirpath, recursive=True, suffix='obj_filter.csv')
         # gap_dict_list = []
         # 进行插值
         for obj_filter_csv in obj_filter_csvs:
             logging.info(obj_filter_csv)
             obj_filter_df = pd.read_csv(obj_filter_csv)
-            gap_dict = dup_id_check(obj_filter_df, gap=0.07)
+            gap_dict = dup_id_check(obj_filter_df, gap=0.2)
             # obj_filter_interp_df = linear_interpol(obj_filter_df, gap_dict)
             # out_path = get_save_path(obj_filter_csv, '_interp2.csv')
             # obj_filter_interp_df.to_csv(out_path, index=False)
             # gap_dict_list.append(gap_dict)
-
+        '''
         #生成视频进行数据检查,看有没有需要删除的id
 
         #删除视频检查以后需要清除的id
-        # interp_obj_csv = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210916_052044_G260-PDX-006-001-052_000003-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210916_052044_G260-PDX-006-001-052_000003-000060_LD_final_OD_MERGE_OPP_obj_filter_interp_del.csv"
+        # interp_obj_csv = "/home/jiang/trajectory_pred/ld_dataset/ibeo_dataset/OD_LiangDao_20220318_9988_164021/OD_LiangDao_20220318_9988_164021_obj_filter.csv"
         # interp_obj_df = pd.read_csv(interp_obj_csv)
-        # to_del_id = [363]
+        # to_del_id = [75]
         # del_obj_id_df = del_obj_id(interp_obj_df, to_del_id)
-        # del_obj_id_df.to_csv(interp_obj_csv, index=False)
         # out_path = get_save_path(interp_obj_csv, '_del.csv')
         # del_obj_id_df.to_csv(out_path, index=False)
-        '''
 
         #把obj_df以及ego_df合并起来，并且算出GlobalX，以及GlobalY
-        ego_csvs = find_files(dataset_dirpath, recursive=True, suffix='ego.csv')
-        interp2_csvs = find_files(dataset_dirpath, recursive=True, suffix='interp2.csv')
-        # final_obj_csv = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_obj_filter_interp_del.csv"
-        # final_ego_csv = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_ego.csv"
-        assert len(ego_csvs) == len(interp2_csvs), "文件数量不符"
-        for ego_csv, interp2_csv in zip(ego_csvs, interp2_csvs):
-            logging.info(ego_csv.split('/')[-1])
-            assert ego_csv.split('/')[-1][:64] == interp2_csv.split('/')[-1][:64], "文件不对应"
-            final_obj_df = pd.read_csv(interp2_csv)
-            final_ego_df = pd.read_csv(ego_csv)
+        # ego_csvs = find_files(dataset_dirpath, recursive=True, suffix='ego.csv')
+        # interp2_csvs = find_files(dataset_dirpath, recursive=True, suffix='del.csv')
+        # # final_obj_csv = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_obj_filter_interp_del.csv"
+        # # final_ego_csv = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_ego.csv"
+        # assert len(ego_csvs) == len(interp2_csvs), "文件数量不符"
+        # for ego_csv, interp2_csv in zip(ego_csvs, interp2_csvs):
+        #     logging.info(ego_csv.split('/')[-1])
+        #     assert ego_csv.split('/')[-1][:32] == interp2_csv.split('/')[-1][:32], "文件不对应"
+        #     final_obj_df = pd.read_csv(interp2_csv)
+        #     final_ego_df = pd.read_csv(ego_csv)
 
-            merge_df = merge_obj_ego(final_obj_df, final_ego_df)
-            merge_out_path = get_save_path(ego_csv, "_fusion.csv", "_ego.csv")
-            merge_df.to_csv(merge_out_path, index=False)
+        #     merge_df = merge_obj_ego(final_obj_df, final_ego_df)
+        #     merge_out_path = get_save_path(ego_csv, "_fusion.csv", "_ego.csv")
+        #     merge_df.to_csv(merge_out_path, index=False)
 
-            # 把20hz的数据降到10hz
-            # fusion_csv = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_fusion.csv"
-            # fusion_df = pd.read_csv(fusion_csv)
-            fusion_10hz_df = down_sample(merge_df)
-            fusion_10hz_out_path = get_save_path(ego_csv, "_fusion_10hz.csv", "_ego.csv")
-            fusion_10hz_df.to_csv(fusion_10hz_out_path, index=False)
+        # 把20hz的数据降到10hz
+        # fusion_csv = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_fusion.csv"
+        # fusion_df = pd.read_csv(fusion_csv)
+        # fusion_10hz_df = down_sample(merge_df)
+        # fusion_10hz_out_path = get_save_path(ego_csv, "_fusion_10hz.csv", "_ego.csv")
+        # fusion_10hz_df.to_csv(fusion_10hz_out_path, index=False)
+
+        # 剪切时间段
+        fusion_csv = "/home/jiang/trajectory_pred/ld_dataset/ibeo_dataset/OD_LiangDao_20220318_9988_171225/OD_LiangDao_20220318_9988_171225_fusion.csv"
+        df = pd.read_csv(fusion_csv)
+        cut_time_periods = [(None, 1647621825)]
+        cut_dfs = cut_df(df, cut_time_periods)
+        for i, ret_df in enumerate(cut_dfs):
+            cut_df_save_path = get_save_path(fusion_csv, new_suf=f"_{i:02d}_cut.csv")
+            ret_df.to_csv(cut_df_save_path, index=False)
 
     except Exception as e:
         logging.exception(e)

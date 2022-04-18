@@ -8,42 +8,13 @@ from torch_geometric.data import Dataset, Data
 from torch_geometric.loader import DataLoader
 from plot_helper import find_files
 import pickle, json
+from plot_instan import rotate_points, plot_glb_frm
 
 
-# data
-class LD_Dataset2(Dataset):
-
-    def __init__(self, data_path='ld_data_pygs'):
-        # Initialization
-        self.data_path = data_path
-
-        self.scenario_data_names = find_files(self.data_path, suffix='.pyg')
-
-        print(f'there are {len(self)} data pieces')
-        super(LD_Dataset2).__init__()
-
-    def __len__(self):
-        'Denotes the total number of samples'
-        return len(self.scenario_data_names)
-
-    def __getitem__(self, index):
-        'Generates one sample of data'
-        # Select sample
-        ID = self.scenario_data_names[index]
-        data_item = torch.load(ID)
-        # data_item.node_feature = data_item.node_feature.float()
-        data_item.x = data_item.node_feature.float()
-        data_item.y = data_item.y.float()
-
-        data_item.fname = ID.split('/')[-1][:-4]
-        # print(data_item)
-        return data_item
-
-
-class LD_Dataset(Dataset):
+class LD_Rotate_Dataset(Dataset):
 
     def __init__(self, samples_list, ds_df_dict, t_h=30, t_f=50):
-        super(LD_Dataset).__init__()
+        super().__init__()
         # Initialization
         self.samples_list = samples_list
         self.ds_df_dict = ds_df_dict
@@ -109,6 +80,7 @@ class LD_Dataset(Dataset):
         '''
         # 得到ego车辆的ref_pos,ego_loc_pos,以及他的历史轨迹ego_hist
         ref_pos, ego_loc_pos, ego_hist = self.get_ego_hist(ds_id, ego_id, frm_id)
+        yaw = self.get_ego_yaw(ds_id, frm_id)
         if ref_pos is None:
             return np.empty([0, 31, 2]), np.empty([0, 50, 2]), []
 
@@ -118,18 +90,21 @@ class LD_Dataset(Dataset):
 
         # initialize data
         hist_all = np.zeros([len(nbrs_hist) + 1, 31, 2])
-        hist_all[0] = ego_hist  # 第一个必须是ego历史轨迹
+        # hist_all[0] = ego_hist  # 第一个必须是ego历史轨迹
+        hist_all[0] = rotate_points(ego_hist, -yaw)  # 第一个必须是ego历史轨迹-->旋转后的
         f1 = np.zeros([1, 50, 2])
 
         # get the fut of ego (target)
         f = self.get_fut(ds_id, ego_id, frm_id, ref_pos)
+        f = rotate_points(f, -yaw)
         if len(f) == 0:
             return np.empty([0, 31, 2]), np.empty([0, 50, 2]), []
         f1[0] = f
 
         # get hist of all vehicles (nbrs and ego)
         for i, nbr_hist in enumerate(nbrs_hist):
-            hist_all[i + 1] = nbr_hist
+            # hist_all[i + 1] = nbr_hist
+            hist_all[i + 1] = rotate_points(nbr_hist, -yaw)
 
         # edges of a star-like graph
 
@@ -166,6 +141,14 @@ class LD_Dataset(Dataset):
         vehposs = df0[(df0['frame_id'] >= frm_stpt) &
                       (df0['frame_id'] < frm_enpt)][['frame_id', 'obj_id', 'LocalX', 'LocalY', 'GlobalX', 'GlobalY', 'oritentation_yaw']]
         return vehposs
+
+    def get_ego_yaw(self, ds_id, frm_id):
+        '''
+        得到指定frm_id的主车的yaw角
+        '''
+        ego_frame_df = self.veh_id2traj_all[ds_id][0][self.veh_id2traj_all[ds_id][0]['frame_id'] == frm_id]
+        yaw = ego_frame_df['oritentation_yaw'].values[0]
+        return yaw
 
     def get_ego_hist(self, ds_id, ego_id, frm_id):
         '''
@@ -294,21 +277,40 @@ def get_tgt_smp(samples_list, ds_id, tgt_id):
 
 
 if __name__ == '__main__':
-    import pickle
-    with open("ld_data/processed_samples_list/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060", "rb") as fp:  # Unpickling
-        samples_list = pickle.load(fp)
+    # import pickle
+    # with open("ld_data/processed_samples_list/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060", "rb") as fp:  # Unpickling
+    #     samples_list = pickle.load(fp)
 
-    csv_path1 = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_fusion_10hz.csv"
-    ds_df1 = pd.read_csv(csv_path1)
-    ds_df_dict = {1: ds_df1}
+    # csv_path1 = "/home/jiang/trajectory_pred/ld_dataset/Dataset_for_Master_Thesis/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP/LIDAR_LJ02766_20210915_101959_G260-PDX-006-001-052_000000-000060_LD_final_OD_MERGE_OPP_fusion_10hz.csv"
+    # ds_df1 = pd.read_csv(csv_path1)
+    # ds_df_dict = {1: ds_df1}
 
-    ld_dataset = LD_Dataset(samples_list, ds_df_dict)
-    print(len(ld_dataset))
+    # ld_dataset = LD_Rotate_Dataset(samples_list, ds_df_dict)
+    # print(len(ld_dataset))
 
     import random
-    idx_lists = random.sample(range(0, len(ld_dataset)), 10)
+    random.seed(1)
+    # idx_lists = random.sample(range(0, len(ld_dataset)), 10)
+    # print(idx_lists)
+
+    # for idx in idx_lists:
+    #     print(samples_list[idx])
+    #     print(ld_dataset[idx].x)
+    #     print(ld_dataset[idx].y)
+    #     plot_glb_frm(ld_dataset[idx].x, ld_dataset[idx].y, 0, '0')
+
+    from ld_data_pre import ibeo_csv_dict, ibeo_csv_dir
+    sample_dir = "ld_data/processed_ibeo_samples_list"
+    samples_list = get_smp_list(sample_dir, prefix="")
+    ds_df_dict = get_ds_df_dict(ibeo_csv_dir, ibeo_csv_dict)
+    ld_ibeo_dataset = LD_Rotate_Dataset(samples_list, ds_df_dict)
+    print(len(ld_ibeo_dataset))
+
+    idx_lists = random.sample(range(0, len(ld_ibeo_dataset)), 10)
     print(idx_lists)
 
     for idx in idx_lists:
         print(samples_list[idx])
-        print(ld_dataset[idx].x)
+        print(ld_ibeo_dataset[idx].x)
+        print(ld_ibeo_dataset[idx].y)
+        plot_glb_frm(ld_ibeo_dataset[idx].x, ld_ibeo_dataset[idx].y, 0, '0')

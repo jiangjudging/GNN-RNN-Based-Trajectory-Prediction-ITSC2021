@@ -21,21 +21,21 @@ def traj_plot_by_plt(hist, fut_gt, fut_pred, file_name):
     ax.set_yticks(minor_ticks, minor=True)
     for i in range(len(hist)):
         if i == 0:
-            ax.plot(hist[i, :, 1], hist[i, :, 0], 'b', label='target_hist')
-            ax.plot(hist[i, :, 1], hist[i, :, 0], '.b')
-            ax.plot(hist[i, -1, 1], hist[i, -1, 0], 'or')
+            ax.plot(hist[i, :, 0], hist[i, :, 1], 'b', label='target_hist')
+            ax.plot(hist[i, :, 0], hist[i, :, 1], '.b')
+            ax.plot(hist[i, -1, 0], hist[i, -1, 1], 'or')
         else:
-            ax.plot(hist[i, :, 1], hist[i, :, 0], 'k')
-            ax.plot(hist[i, :, 1], hist[i, :, 0], '.k')
-            ax.plot(hist[i, -1, 1], hist[i, -1, 0], 'o')
+            ax.plot(hist[i, :, 0], hist[i, :, 1], 'k')
+            ax.plot(hist[i, :, 0], hist[i, :, 1], '.k')
+            ax.plot(hist[i, -1, 0], hist[i, -1, 1], 'o')
 
-    ax.plot(fut_gt[0, :, 1], fut_gt[0, :, 0], 'g', label='fut_gt')
-    ax.plot(fut_gt[0, :, 1], fut_gt[0, :, 0], '.g')
-    ax.plot(fut_gt[0, -1, 1], fut_gt[0, -1, 0], 'og')
+    ax.plot(fut_gt[0, :, 0], fut_gt[0, :, 1], 'g', label='fut_gt')
+    ax.plot(fut_gt[0, :, 0], fut_gt[0, :, 1], '.g')
+    ax.plot(fut_gt[0, -1, 0], fut_gt[0, -1, 1], 'og')
 
-    ax.plot(fut_pred[0, :, 1], fut_pred[0, :, 0], 'r', label='fut_pred')
-    ax.plot(fut_pred[0, :, 1], fut_pred[0, :, 0], '.r')
-    ax.plot(fut_pred[0, -1, 1], fut_pred[0, -1, 0], 'or')
+    ax.plot(fut_pred[0, :, 0], fut_pred[0, :, 1], 'r', label='fut_pred')
+    ax.plot(fut_pred[0, :, 0], fut_pred[0, :, 1], '.r')
+    ax.plot(fut_pred[0, -1, 0], fut_pred[0, -1, 1], 'or')
 
     plt.title(file_name)
     plt.xlabel('Y(m)')
@@ -51,6 +51,7 @@ def traj_plot_by_plt(hist, fut_gt, fut_pred, file_name):
     # ax.grid(linewidth=1, which='minor')
     # plt.show()
     plt.savefig(f"{file_name}")
+    plt.close()
 
 
 def ld_traj_plot_by_plt(hist, fut_gt, fut_pred, file_name):
